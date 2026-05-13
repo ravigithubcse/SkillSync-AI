@@ -1,0 +1,359 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String
+  firstName     String
+  lastName      String
+  role          UserRole  @default(JOB_SEEKER)
+  avatar        String?
+  title         String?
+  bio           String?
+  location      String?
+  linkedinUrl   String?
+  githubUrl     String?
+  portfolioUrl  String?
+  yearsOfExperience Int @default(0)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  skills        UserSkill[]
+  experiences   Experience[]
+  educations    Education[]
+  resumes       Resume[]
+  jobApplications JobApplication[]
+  mentorSessions MentorSession[]
+  mockInterviews MockInterview[]
+  peerMatches   PeerMatch[]
+  notifications Notification[]
+  messagesSent  Message[] @relation("SentMessages")
+  messagesReceived Message[] @relation("ReceivedMessages")
+  recruiterProfile RecruiterProfile?
+
+  @@map("users")
+}
+
+model RecruiterProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyName String
+  companySize String?
+  industry    String?
+  website     String?
+  verified    Boolean  @default(false)
+  jobPostings JobPosting[]
+
+  @@map("recruiter_profiles")
+}
+
+model Skill {
+  id          String      @id @default(cuid())
+  name        String      @unique
+  category    SkillCategory
+  demandScore Int         @default(50)
+  avgSalary   Int?
+  trend       TrendDirection @default(STABLE)
+  createdAt   DateTime    @default(now())
+
+  users       UserSkill[]
+  jobRequirements JobRequirement[]
+
+  @@map("skills")
+}
+
+model UserSkill {
+  id        String    @id @default(cuid())
+  userId    String
+  skillId   String
+  proficiency ProficiencyLevel @default(BEGINNER)
+  yearsOfExperience Int @default(0)
+  endorsed  Boolean   @default(false)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill     Skill     @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, skillId])
+  @@map("user_skills")
+}
+
+model Experience {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company     String
+  title       String
+  location    String?
+  startDate   DateTime
+  endDate     DateTime?
+  current     Boolean  @default(false)
+  description String?
+  skills      String[]
+  createdAt   DateTime @default(now())
+
+  @@map("experiences")
+}
+
+model Education {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  institution String
+  degree      String
+  field       String
+  startDate   DateTime
+  endDate     DateTime?
+  current     Boolean  @default(false)
+  gpa         String?
+  createdAt   DateTime @default(now())
+
+  @@map("educations")
+}
+
+model Resume {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  filename    String
+  originalName String
+  fileUrl     String
+  fileSize    Int
+  mimeType    String
+  parsedData  Json?
+  atsScore    Int?
+  feedback    String?
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@map("resumes")
+}
+
+model JobPosting {
+  id          String   @id @default(cuid())
+  recruiterId String
+  recruiter   RecruiterProfile @relation(fields: [recruiterId], references: [id], onDelete: Cascade)
+  title       String
+  description String
+  location    String
+  type        JobType
+  salaryMin   Int?
+  salaryMax   Int?
+  currency    String   @default("USD")
+  status      JobStatus @default(ACTIVE)
+  remote      Boolean  @default(false)
+  views       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  requirements JobRequirement[]
+  applications JobApplication[]
+
+  @@map("job_postings")
+}
+
+model JobRequirement {
+  id          String   @id @default(cuid())
+  jobId       String
+  job         JobPosting @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  skillId     String
+  skill       Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  required    Boolean  @default(true)
+  minYears    Int      @default(0)
+
+  @@map("job_requirements")
+}
+
+model JobApplication {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobId       String
+  job         JobPosting @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  status      ApplicationStatus @default(APPLIED)
+  coverLetter String?
+  matchScore  Int?
+  appliedAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([userId, jobId])
+  @@map("job_applications")
+}
+
+model MentorSession {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topic       String
+  messages    Json
+  summary     String?
+  actionItems String[]
+  createdAt   DateTime @default(now())
+
+  @@map("mentor_sessions")
+}
+
+model MockInterview {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  peerId      String?
+  peer        User?    @relation(fields: [peerId], references: [id], name: "PeerInterviews")
+  type        InterviewType
+  status      InterviewStatus @default(SCHEDULED)
+  scheduledAt DateTime
+  completedAt DateTime?
+  feedback    Json?
+  rating      Int?
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  @@map("mock_interviews")
+}
+
+model PeerMatch {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  matchedUserId String
+  matchScore  Int
+  status      MatchStatus @default(PENDING)
+  createdAt   DateTime @default(now())
+
+  @@map("peer_matches")
+}
+
+model Message {
+  id          String   @id @default(cuid())
+  senderId    String
+  sender      User     @relation(fields: [senderId], references: [id], name: "SentMessages", onDelete: Cascade)
+  receiverId  String
+  receiver    User     @relation(fields: [receiverId], references: [id], name: "ReceivedMessages", onDelete: Cascade)
+  content     String
+  read        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@map("messages")
+}
+
+model Notification {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        NotificationType
+  title       String
+  message     String
+  read        Boolean  @default(false)
+  data        Json?
+  createdAt   DateTime @default(now())
+
+  @@map("notifications")
+}
+
+model MarketData {
+  id          String   @id @default(cuid())
+  skillId     String
+  date        DateTime @default(now())
+  jobCount    Int
+  avgSalary   Int
+  demandIndex Int
+  location    String   @default("Global")
+
+  @@map("market_data")
+}
+
+enum UserRole {
+  JOB_SEEKER
+  RECRUITER
+  ADMIN
+}
+
+enum SkillCategory {
+  PROGRAMMING
+  FRAMEWORK
+  DATABASE
+  CLOUD
+  DEVOPS
+  DESIGN
+  MANAGEMENT
+  SOFT_SKILL
+  LANGUAGE
+  OTHER
+}
+
+enum ProficiencyLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+}
+
+enum TrendDirection {
+  RISING
+  STABLE
+  DECLINING
+}
+
+enum JobType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERNSHIP
+  FREELANCE
+}
+
+enum JobStatus {
+  ACTIVE
+  PAUSED
+  CLOSED
+  DRAFT
+}
+
+enum ApplicationStatus {
+  APPLIED
+  SCREENING
+  INTERVIEW
+  OFFER
+  REJECTED
+  WITHDRAWN
+}
+
+enum InterviewType {
+  TECHNICAL
+  BEHAVIORAL
+  SYSTEM_DESIGN
+  CODING
+  HR
+}
+
+enum InterviewStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum MatchStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
+enum NotificationType {
+  JOB_MATCH
+  INTERVIEW_REMINDER
+  MESSAGE
+  APPLICATION_UPDATE
+  MENTOR_INSIGHT
+  PEER_MATCH
+  SYSTEM
+}
