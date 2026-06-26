@@ -48,21 +48,61 @@
 
 ## 🏗️ Architecture
 
-```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│   React + Vite  │────▶│  Node.js API    │────▶│   PostgreSQL    │
-│   Tailwind CSS  │     │   Express       │     │   (Prisma ORM)  │
-│   Framer Motion │     │   Socket.io     │     │                 │
-│   Recharts      │     │   JWT Auth      │     │                 │
-└─────────────────┘     └─────────────────┘     └─────────────────┘
-                               │
-                               ▼
-                        ┌─────────────────┐
-                        │      Redis      │
-                        │   (Sessions)    │
-                        └─────────────────┘
+```mermaid
+flowchart TB
+    Client["🌐 React 18 + TypeScript
+SPA · WebSocket · Chart.js"]
+
+    subgraph BE["🟢 Node.js / Express Backend"]
+        B1["🔐 JWT Auth
++ Refresh Tokens"]
+        B2["🔌 Socket.io
+Real-time Events"]
+        B3["📋 REST API
+CRUD Endpoints"]
+    end
+
+    subgraph ML["🐍 AI / ML Layer"]
+        M1["FastAPI Microservice"]
+        M2["scikit-learn
+Career Matching"]
+        M3["TF-IDF
+Skill Extraction"]
+    end
+
+    subgraph DATA["🗄️ Data Layer"]
+        D1["🐘 PostgreSQL 16
++ Prisma ORM"]
+        D2["⚡ Redis 7
+Sessions · Cache"]
+    end
+
+    Client <-->|HTTPS / WSS| BE
+    BE --> ML
+    B1 <--> D2
+    B3 <--> D1
+    M1 --> M2 & M3
+
+    classDef client fill:#0d47a1,stroke:#42a5f5,color:#e3f2fd
+    classDef be fill:#1b5e20,stroke:#66bb6a,color:#e8f5e9
+    classDef ml fill:#4a148c,stroke:#ba68c8,color:#f3e5f5
+    classDef data fill:#3e2723,stroke:#ff8a65,color:#fbe9e7
+    class Client client
+    class B1,B2,B3 be
+    class M1,M2,M3 ml
+    class D1,D2 data
 ```
 
+**Request Flow:**
+1. **React 18 SPA** communicates via HTTPS (REST) and WSS (Socket.io) for real-time peer events
+2. **JWT Auth** middleware secures all routes; refresh tokens are stored in **Redis**
+3. **REST API** handles career profiles, mock interview sessions, and mentorship matching via PostgreSQL
+4. **Socket.io** pushes live interview events, peer join/leave, and AI analysis results to all participants
+5. **FastAPI ML microservice** exposes career-matching and skill-extraction endpoints consumed by Node.js
+6. **scikit-learn** powers recommendation engines; **TF-IDF** extracts skill vectors from job descriptions
+7. **Redis** caches session state and leaderboards for sub-millisecond reads during live sessions
+
+---
 ## 🚀 Quick Start
 
 ### Prerequisites
